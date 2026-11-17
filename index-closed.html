@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Моя зарплата</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: one narrow column, phone first. A big total on top, the meter and the breakdown under it, inputs last. */
+/* Ozon palette by default; the page switches to the Wildberries palette when a Wildberries pointer is chosen. */
+:root {
+  --bg: #f2f5fa;
+  --surface: #ffffff;
+  --ink: #001a34;
+  --muted: #53657d;
+  --line: #d9e1ee;
+  --accent: #005bff;
+  --accent-soft: #e6efff;
+  --amber: #f91155;
+  --c1: #005bff; --c2: #f91155; --c3: #12a58a; --c4: #8a5cc2; --c5: #e08a1e; --c6: #4c9a2a; --c7: #7a8a86; --c8: #00a7d6; --c9: #9a7a3a;
+  --font-body: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: "Unbounded", "Manrope", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0a1424; --surface: #121f36; --ink: #e8f0fb; --muted: #9db0cc; --line: #243653;
+    --accent: #4d8dff; --accent-soft: #12284d; --amber: #ff5c8a;
+    --c1: #4d8dff; --c2: #ff5c8a; --c3: #3fc9ad; --c4: #b896e6; --c5: #f0a24b; --c6: #86cc5f; --c7: #93a39f; --c8: #62c9df; --c9: #c9a66b;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0a1424; --surface: #121f36; --ink: #e8f0fb; --muted: #9db0cc; --line: #243653;
+  --accent: #4d8dff; --accent-soft: #12284d; --amber: #ff5c8a;
+  --c1: #4d8dff; --c2: #ff5c8a; --c3: #3fc9ad; --c4: #b896e6; --c5: #f0a24b; --c6: #86cc5f; --c7: #93a39f; --c8: #62c9df; --c9: #c9a66b;
+}
+:root[data-brand="wb"] {
+  --bg: #f8f1fa; --surface: #ffffff; --ink: #2a0a3d; --muted: #6d5578; --line: #e8d7ee;
+  --accent: #cb11ab; --accent-soft: #fbe6f7; --amber: #7a35c2;
+  --c1: #cb11ab; --c2: #7a35c2; --c3: #1f7ad4; --c4: #e08a1e; --c5: #d12f4d; --c6: #2f9a62; --c7: #7a8a86; --c8: #1f9fb8; --c9: #9a7a3a;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-brand="wb"]:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #170a1f; --surface: #231230; --ink: #f3e8f7; --muted: #bfa4cc; --line: #3d2650;
+    --accent: #e45ccb; --accent-soft: #3a1a45; --amber: #a77bf0;
+    --c1: #e45ccb; --c2: #a77bf0; --c3: #5aa6f0; --c4: #f0a24b; --c5: #f0708a; --c6: #6fcf97; --c7: #93a39f; --c8: #62c9df; --c9: #c9a66b;
+  }
+}
+:root[data-brand="wb"][data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #170a1f; --surface: #231230; --ink: #f3e8f7; --muted: #bfa4cc; --line: #3d2650;
+  --accent: #e45ccb; --accent-soft: #3a1a45; --amber: #a77bf0;
+  --c1: #e45ccb; --c2: #a77bf0; --c3: #5aa6f0; --c4: #f0a24b; --c5: #f0708a; --c6: #6fcf97; --c7: #93a39f; --c8: #62c9df; --c9: #c9a66b;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 720px; margin: 0 auto; padding: 20px 16px 48px; display: flex; flex-direction: column; gap: 16px; }
+h1 { font-family: var(--font-display); font-size: 22px; line-height: 1.25; font-weight: 700; margin: 0; text-wrap: balance; }
+h2 { font-size: 17px; margin: 0; font-weight: 800; text-wrap: balance; }
+.lead { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+header { display: flex; flex-direction: column; gap: 14px; }
+label, .label { font-size: 13px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px; }
+select, input[type="number"], input[type="text"] {
+  width: 100%; height: 46px; padding: 0 12px;
+  font: inherit; font-size: 16px; color: var(--ink);
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: 10px;
+}
+select:focus-visible, input:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 2px;
+}
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--line); border-radius: 12px; }
+.tabs button {
+  height: 42px; border: 0; border-radius: 9px; background: transparent; color: var(--muted);
+  font: inherit; font-weight: 700; font-size: 15px; cursor: pointer;
+}
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.hero { background: var(--accent-soft); border-color: transparent; }
+.hero .cap { font-size: 13px; font-weight: 700; color: var(--muted); }
+.total { font-family: var(--font-display); font-weight: 700; font-size: 38px; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.sub { color: var(--muted); font-size: 14px; }
+.sub b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.meter { position: relative; height: 14px; background: var(--line); border-radius: 8px; overflow: visible; }
+.meter .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 8px; background: var(--accent); }
+.meter .over { position: absolute; top: 0; bottom: 0; border-radius: 0 8px 8px 0; background: var(--amber); }
+.meter .mark { position: absolute; top: -5px; bottom: -5px; width: 3px; background: var(--ink); border-radius: 2px; }
+.meter-legend { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stack { display: flex; height: 18px; border-radius: 9px; overflow: hidden; background: var(--line); gap: 2px; }
+.stack span { display: block; min-width: 0; }
+.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.rows li { display: grid; grid-template-columns: 12px 1fr auto; gap: 10px; align-items: start; padding: 10px 0; border-top: 1px solid var(--line); }
+.rows li:first-child { border-top: 0; }
+.dot { width: 12px; height: 12px; border-radius: 4px; margin-top: 5px; }
+.rows .name { font-weight: 700; }
+.rows .note { font-size: 13px; color: var(--muted); }
+.rows .amt { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rows li.zero .amt, .rows li.zero .name { color: var(--muted); font-weight: 500; }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fields .full { grid-column: 1 / -1; }
+.checks { display: flex; flex-direction: column; gap: 4px; }
+.check { display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: center; min-height: 44px; padding: 4px 0; border-top: 1px solid var(--line); cursor: pointer; font-size: 15px; }
+.check:first-child { border-top: 0; }
+.check input { width: 22px; height: 22px; accent-color: var(--accent); margin: 0; }
+.check .v { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 14px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { height: 40px; padding: 0 14px; border-radius: 20px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.btn { height: 46px; padding: 0 18px; border: 0; border-radius: 10px; background: var(--accent); color: var(--bg); font: inherit; font-weight: 800; font-size: 15px; cursor: pointer; }
+.btn.alt { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.slider { display: flex; flex-direction: column; gap: 4px; }
+.slider .top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.slider .top b { font-variant-numeric: tabular-nums; font-size: 17px; }
+input[type="range"] { width: 100%; height: 36px; accent-color: var(--accent); }
+.steps { display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; list-style: none; }
+.steps li { display: grid; grid-template-columns: 12px 1fr; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); }
+.steps li:first-child { border-top: 0; }
+.steps .t { font-weight: 800; }
+.steps .d { color: var(--muted); font-size: 14px; max-width: 60ch; }
+details.params { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 4px 16px; }
+details.params summary { min-height: 48px; display: flex; align-items: center; font-weight: 800; cursor: pointer; }
+details.params .inner { padding: 4px 0 16px; display: flex; flex-direction: column; gap: 14px; }
+.ptable { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px; align-items: end; }
+.ptable .h { font-size: 12px; font-weight: 700; color: var(--muted); }
+.ptable .n { font-size: 14px; font-weight: 700; align-self: center; }
+.pcards { display: flex; flex-direction: column; gap: 12px; }
+.pcard { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.pcard .full { grid-column: 1 / -1; }
+.ptinfo { font-size: 14px; color: var(--muted); margin: 6px 0 0; }
+.ptinfo b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.col { display: flex; flex-direction: column; gap: 16px; }
+.slider .top b { white-space: nowrap; }
+.slider .top label { flex: 1; }
+.pselect { position: relative; z-index: 30; }
+.pselect > button { width: 100%; height: 48px; border: 0; border-radius: 10px; color: #fff; font: inherit; font-weight: 800; font-size: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px; cursor: pointer; text-align: left; }
+.pselect > button[data-brand="ozon"], .opt[data-brand="ozon"] { background: #005bff; }
+.pselect > button[data-brand="wb"], .opt[data-brand="wb"] { background: #cb11ab; }
+.chev { flex: none; width: 10px; height: 10px; border-right: 2.5px solid #fff; border-bottom: 2.5px solid #fff; transform: rotate(45deg) translateY(-2px); }
+.pselect ul { position: absolute; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 0; list-style: none; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 28px rgba(0,0,0,.28); }
+.opt { display: block; width: 100%; min-height: 48px; padding: 10px 16px; border: 0; border-bottom: 1px solid rgba(255,255,255,.3); color: #fff; font: inherit; font-weight: 700; font-size: 15px; text-align: left; cursor: pointer; }
+.pselect li:last-child .opt { border-bottom: 0; }
+.opt[aria-selected="true"] { box-shadow: inset 5px 0 0 #fff; padding-left: 20px; }
+.opt:focus-visible, .pselect > button:focus-visible { outline: 3px solid var(--ink); outline-offset: -3px; }
+.fields > div, .pcard > div { display: flex; flex-direction: column; }
+.fields > div > label:first-child, .pcard > div > label:first-child { flex: 1; display: flex; align-items: flex-end; }
+.inline { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer; }
+.inline input { width: 20px; height: 20px; accent-color: var(--accent); margin: 0; }
+.profile-help { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--muted); }
+.profile-help p { margin: 0; }
+.profile-help b { color: var(--ink); }
+[data-tier="0"] { --tier: #17844a; --tier-soft: rgba(31,160,90,.14); --tier-glow: rgba(31,160,90,.5); --tier-ink: #ffffff; }
+[data-tier="1"] { --tier: var(--accent); --tier-soft: var(--accent-soft); --tier-glow: color-mix(in srgb, var(--accent) 45%, transparent); --tier-ink: var(--bg); }
+[data-tier="2"] { --tier: #d9a400; --tier-soft: rgba(217,164,0,.17); --tier-glow: rgba(240,190,30,.65); --tier-ink: #2b1f00; }
+.tiered { border: 2px solid var(--tier); background-image: linear-gradient(var(--tier-soft), var(--tier-soft)); }
+.tiered input[type="number"], .tiered select { border-color: var(--tier); background-image: linear-gradient(var(--tier-soft), var(--tier-soft)); }
+.tiered input:focus-visible, .tiered select:focus-visible { outline-color: var(--tier); }
+.tiered input[type="range"], .tiered input[type="checkbox"] { accent-color: var(--tier); }
+.chips { padding-top: 16px; }
+.chip { position: relative; }
+.chip[aria-pressed="true"][data-tier] { background: var(--tier); color: var(--tier-ink); border-color: var(--tier); box-shadow: 0 0 0 3px var(--tier-glow), 0 0 16px var(--tier-glow); }
+.crown { position: absolute; left: 50%; top: -16px; width: 26px; height: 17px; transform: translateX(-50%); pointer-events: none; }
+.chip[aria-pressed="true"] .crown { filter: drop-shadow(0 0 4px rgba(240,190,30,.9)); }
+.hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.defer { border: 1.5px dashed var(--c8); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px; background: var(--surface); }
+.defer-top { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: start; }
+.defer .name { font-weight: 800; font-size: 17px; }
+.defer .note { font-size: 13px; color: var(--muted); }
+.defer .amt { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.badge { align-self: flex-start; background: var(--amber); color: var(--bg); font-weight: 800; font-size: 13px; padding: 4px 10px; border-radius: 999px; }
+.warn { margin: 0; font-size: 14px; max-width: 60ch; }
+.foot { font-size: 13px; color: var(--muted); max-width: 64ch; margin: 0; }
+.example { font-size: 13px; color: var(--muted); margin: 0; }
+@media (max-width: 440px) {
+  .total { font-size: 32px; }
+  .fields { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .meter .fill, .meter .over, .stack span { transition: width .25s ease; }
+}
+body.locked main { display: none !important; }
+body:not(.locked) .gate { display: none; }
+.gate { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; text-align: center; }
+.gate-box { max-width: 360px; }
+.gate-box h1 { font-size: 22px; margin: 0 0 12px; }
+.gate-box p { font-size: 16px; line-height: 1.5; margin: 0; opacity: .8; }
+</style>
+</head>
+<body class="locked">
+<div id="gate" class="gate"><div class="gate-box"><h1>Моя зарплата</h1><p id="gate-msg">Загрузка…</p></div></div>
+<main class="wrap">
+  <header>
+    <div>
+      <h1>Моя зарплата</h1>
+      <p class="lead">Оклад за смену, бонус за выдачи сверх нормы и месячная премия. Введите свои цифры и увидите, сколько вы заработали.</p>
+    </div>
+    <div>
+      <label id="pointer-label">Пункт выдачи</label>
+      <div class="pselect">
+        <button type="button" id="pointer-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="pointer-label pointer-name"><span id="pointer-name"></span><span class="chev" aria-hidden="true"></span></button>
+        <ul id="pointer-list" role="listbox" aria-labelledby="pointer-label" hidden></ul>
+      </div>
+      <p class="ptinfo" id="ptinfo"></p>
+    </div>
+    <div class="tabs" role="tablist" aria-label="Режим">
+      <button type="button" role="tab" id="tab-calc" data-tab="calc" aria-selected="true">Мой расчёт</button>
+      <button type="button" role="tab" id="tab-how" data-tab="how" aria-selected="false">Как строится оплата</button>
+    </div>
+  </header>
+
+  <section id="view-calc" aria-labelledby="tab-calc" class="col">
+    <div class="card hero">
+      <div class="cap">Заработано за месяц на сегодня</div>
+      <div class="total" id="total">0 ₽</div>
+      <div class="sub" id="forecast"></div>
+    </div>
+
+    <div class="card">
+      <h2>Бонус за выдачу сверх нормы</h2>
+      <div class="sub" id="m-text"></div>
+    </div>
+
+    <div class="card">
+      <h2>Из чего сложилась сумма</h2>
+      <div class="stack" id="stack" aria-hidden="true"></div>
+      <ul class="rows" id="rows"></ul>
+    </div>
+
+    <div id="train-card" hidden></div>
+
+    <div class="card tiered" id="data-card" data-tier="0">
+      <h2>Ваши данные</h2>
+      <p class="example">В полях стоит пример. Замените его своими цифрами.</p>
+      <div class="fields">
+        <div><label for="shifts">Отработано смен (без стажировочных)</label><input type="number" id="shifts" inputmode="numeric" min="0" max="31" step="1"></div>
+        <div><label for="planned">Смен в графике на месяц (для премии)</label><input type="number" id="planned" inputmode="numeric" min="1" max="31" step="1"></div>
+        <div class="full"><label for="items">Сверх нормы за месяц, заказов</label><input type="number" id="items" inputmode="numeric" min="0" step="1"><div class="hint">Сколько заказов вы выдали сверх нормы. Каждый такой заказ оплачивается отдельно.</div></div>
+        <div class="full"><label for="level">Ваш уровень</label><select id="level"></select></div>
+        <div><label for="peak">Смен в праздничные дни</label><input type="number" id="peak" inputmode="numeric" min="0" max="31" step="1"></div>
+        <div><label for="train">Стажировочных смен (для новичка, от 1 до 4)</label><input type="number" id="train" inputmode="numeric" min="0" max="4" step="1"></div>
+        <div><label for="mentor">Смен, на которых вы обучали новичка</label><input type="number" id="mentor" inputmode="numeric" min="0" max="31" step="1"></div>
+        <div><label for="refs">Приведённых друзей, отработавших 2 месяца</label><input type="number" id="refs" inputmode="numeric" min="0" max="20" step="1"></div>
+      </div>
+      <div>
+        <span class="label">Условия премии за качество</span>
+        <div class="checks" id="quality"></div>
+      </div>
+      <div class="checks">
+        <label class="check"><input type="checkbox" id="loyalty"><span>3 месяца работал без штрафов</span><span class="v" id="loyalty-v"></span></label>
+        <label class="check"><input type="checkbox" id="team"><span>Пункт выполнил цель по рейтингу</span><span class="v" id="team-v"></span></label>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-how" aria-labelledby="tab-how" class="col" hidden>
+    <div class="card hero">
+      <div class="cap">Пример для выбранного пункта</div>
+      <div class="total" id="h-total">0 ₽</div>
+      <div class="sub" id="h-sub"></div>
+    </div>
+
+    <div class="card tiered" id="h-card" data-tier="1">
+      <h2>Расчёт оплаты</h2>
+      <div class="chips" id="profiles"></div>
+      <div class="profile-help">
+        <p><b>Новичок</b>: отработал от 0 до 3 месяцев.</p>
+        <p><b>Работник</b>: отработал от 3 до 6 месяцев.</p>
+        <p><b>Лидер</b>: отработал больше 6 месяцев.</p>
+        <p>Во всех случаях сотрудник работает без штрафов и взысканий.</p>
+      </div>
+      <div class="slider">
+        <div class="top"><label for="h-shifts" style="margin:0">Смен в месяц</label><b id="h-shifts-v"></b></div>
+        <input type="range" id="h-shifts" min="8" max="24" step="1">
+      </div>
+      <div class="slider">
+        <div class="top"><label for="h-items" style="margin:0">Сверх нормы за месяц, заказов</label><b id="h-items-v"></b></div>
+        <input type="range" id="h-items" min="0" max="5000" step="10">
+      </div>
+      <div class="slider" id="h-train-wrap">
+        <div class="top"><label for="h-train" style="margin:0">Стажировочных смен</label><b id="h-train-v"></b></div>
+        <input type="range" id="h-train" min="1" max="4" step="1">
+      </div>
+      <div class="slider" id="h-mentor-wrap" hidden>
+        <div class="top"><label for="h-mentor" style="margin:0">Смен, на которых вы обучали новичка</label><b id="h-mentor-v"></b></div>
+        <input type="range" id="h-mentor" min="0" max="8" step="1">
+      </div>
+      <label class="check" style="border-top:0"><input type="checkbox" id="h-quality" checked><span>Все смены по графику отработаны, условия премии выполнены</span><span class="v"></span></label>
+    </div>
+
+    <div class="card">
+      <h2>Из чего сложилась сумма</h2>
+      <div class="stack" id="h-stack" aria-hidden="true"></div>
+      <ul class="rows" id="h-rows"></ul>
+    </div>
+
+    <div id="h-train-card" hidden></div>
+
+    <div class="card">
+      <h2>Правила по порядку</h2>
+      <ul class="steps" id="steps"></ul>
+    </div>
+  </section>
+
+  <details class="params" id="owner" hidden>
+    <summary>Настройки владельца</summary>
+    <div class="inner">
+      <p class="sub" style="margin:0">Этот раздел видите только вы. Изменения сразу видны на вашем экране, кнопка «Сохранить для всех» отправляет их сотрудникам.</p>
+      <div class="fields">
+        <div class="full"><label for="p-cap">Лимит бонуса за выдачу сверх нормы в месяц, ₽</label><input type="number" id="p-cap" inputmode="numeric" min="0"><label class="inline"><input type="checkbox" id="p-capon"> Включить лимит</label><div class="hint">По умолчанию лимита нет: бонус растёт вместе с числом заказов.</div></div>
+        <div class="full"><label for="p-trainpay">Оплата за 1 стажировочную смену (выплачивается в 3-ю зарплату), ₽</label><input type="number" id="p-trainpay" inputmode="numeric" min="0"><label class="inline"><input type="checkbox" id="p-trainman"> Ввести сумму вручную</label><div class="hint">По умолчанию равна окладу выбранного пункта и меняется вместе с ним.</div></div>
+        <div class="full"><label class="inline" style="margin-top:0"><input type="checkbox" id="p-qsched"> Премия за качество только тем, кто отработал все смены по графику</label><div class="hint">При пропусках смен или увольнении до конца графика премия не начисляется полностью.</div></div>
+        <div><label for="p-lv1">Надбавка за стаж, «Работник» (3–6 месяцев), ₽ за смену</label><input type="number" id="p-lv1" inputmode="numeric" min="0"></div>
+        <div><label for="p-lv2">Надбавка за стаж, «Лидер» (больше 6 месяцев), ₽ за смену</label><input type="number" id="p-lv2" inputmode="numeric" min="0"></div>
+        <div><label for="p-peak">Доплата за работу в праздничные дни, ₽ за смену</label><input type="number" id="p-peak" inputmode="numeric" min="0"></div>
+        <div><label for="p-ref">За приведённого друга, ₽</label><input type="number" id="p-ref" inputmode="numeric" min="0"></div>
+        <div><label for="p-loy">Бонус за 3 месяца без штрафов, ₽</label><input type="number" id="p-loy" inputmode="numeric" min="0"></div>
+        <div><label for="p-team">Командный бонус, ₽</label><input type="number" id="p-team" inputmode="numeric" min="0"></div>
+        <div><label for="p-mentor">Доплата наставнику за смену со стажёром, ₽</label><input type="number" id="p-mentor" inputmode="numeric" min="0"></div>
+        <div><label for="p-pct0">Пример «Новичок»: сверх нормы за месяц, заказов</label><input type="number" id="p-pct0" inputmode="numeric" min="0"></div>
+        <div><label for="p-pct1">Пример «Работник»: сверх нормы за месяц, заказов</label><input type="number" id="p-pct1" inputmode="numeric" min="0"></div>
+        <div><label for="p-pct2">Пример «Лидер»: сверх нормы за месяц, заказов</label><input type="number" id="p-pct2" inputmode="numeric" min="0"></div>
+      </div>
+      <div>
+        <span class="label">Премия за качество, фонд по частям</span>
+        <div class="fields" id="p-quality"></div>
+      </div>
+      <div>
+        <span class="label">Пункты: название, оклад за смену и доплата за каждый заказ сверх нормы</span>
+        <div class="pcards" id="ptable"></div>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn" id="save">Сохранить для всех</button>
+        
+      </div>
+      <div class="sub" id="owner-status" role="status"></div>
+    </div>
+  </details>
+
+  <p class="foot">Расчёт ориентировочный. Итоговые суммы определяет положение о премировании и фактические данные учёта. Премия за качество и бонусы начисляются при выполнении условий.</p>
+  <p class="foot" id="rules-status" role="status"></p>
+</main>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+// LOGIC-START
+var P = {
+  cap: 0,
+  capOn: false,
+  qualityNeedsSchedule: true,
+  peak: 0,
+  referral: 0,
+  loyalty: 0,
+  team: 0,
+  trainManual: false,
+  trainPay: 0,
+  mentor: 0,
+  profiles: [
+    { name: "Новичок", level: 0, items: 0 },
+    { name: "Работник", level: 1, items: 0 },
+    { name: "Лидер", level: 2, items: 0 }
+  ],
+  levels: [
+    { label: "", add: 0 },
+    { label: "", add: 0 },
+    { label: "", add: 0 }
+  ],
+  quality: [
+    { id: "q0", label: "График без опозданий и пропусков", amount: 0 },
+    { id: "q1", label: "Ноль недостач и ошибок при выдаче", amount: 0 },
+    { id: "q2", label: "Нет жалоб, хороший рейтинг пункта", amount: 0 },
+    { id: "q3", label: "Порядок смены", amount: 0 }
+  ],
+  pointers: [
+    { name: "Озон · ТЦ «Марат» (Первопроходцев, 7)", base: 0, itemPay: 0, brand: "ozon" },
+    { name: "Озон · 5 микрорайон, магазин «Терек»", base: 0, itemPay: 0, brand: "ozon" },
+    { name: "Озон · Черемушки", base: 0, itemPay: 0, brand: "ozon" },
+    { name: "Wildberries", base: 0, itemPay: 0, brand: "wb" }
+  ]
+};
+
+function num(v) { var n = Number(v); return isFinite(n) && n > 0 ? n : 0; }
+function rate(n) { return String(Math.round(n * 100) / 100).replace(".", ",") + "\u00a0₽"; }
+function trainPayFor(ptr) { return P.trainManual ? P.trainPay : ptr.base; }
+
+function calc(s) {
+  var ptr = P.pointers[s.pointer] || P.pointers[0];
+  var lvl = P.levels[s.level] || P.levels[0];
+  var shifts = num(s.shifts);
+  var items = num(s.items);
+  var trainShifts = num(s.trainShifts), mentorShifts = num(s.mentorShifts);
+  var plan = num(s.planned);
+  var worked = shifts + trainShifts;
+  var perShift = ptr.base + lvl.add;
+  var salary = shifts * perShift;
+  var volumeRaw = shifts > 0 ? Math.round(items * ptr.itemPay) : 0;
+  var volume = P.capOn ? Math.min(P.cap, volumeRaw) : volumeRaw;
+  var qualityPossible = 0;
+  for (var i = 0; i < P.quality.length; i++) {
+    if (s.q && s.q[P.quality[i].id]) qualityPossible += P.quality[i].amount;
+  }
+  var scheduleOk = !P.qualityNeedsSchedule || (plan > 0 && worked >= plan);
+  var quality = shifts > 0 && scheduleOk ? qualityPossible : 0;
+  var peakN = Math.min(num(s.peak), shifts);
+  var peak = peakN * P.peak;
+  var referral = num(s.refs) * P.referral;
+  var loyalty = s.loyalty ? P.loyalty : 0;
+  var team = s.team ? P.team : 0;
+  var training = Math.round(trainShifts * trainPayFor(ptr));
+  var mentor = mentorShifts * P.mentor;
+  var total = salary + volume + quality + peak + referral + loyalty + team + mentor;
+  return {
+    ptr: ptr, shifts: shifts, items: items, perShift: perShift, salary: salary,
+    volume: volume, capped: P.capOn && volumeRaw > P.cap,
+    quality: quality, qualityPossible: qualityPossible, scheduleOk: scheduleOk, plan: plan, worked: worked,
+    peakN: peakN, peak: peak, referral: referral, loyalty: loyalty,
+    team: team, training: training, trainShifts: trainShifts, mentor: mentor, mentorShifts: mentorShifts,
+    lvlAdd: lvl.add, total: total
+  };
+}
+// LOGIC-END
+
+var nf = new Intl.NumberFormat("ru-RU");
+function rub(n) { return nf.format(Math.round(n)) + " ₽"; }
+function plural(n, a, b, c) {
+  n = Math.abs(Math.round(n)); var m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return a;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return b;
+  return c;
+}
+function $(id) { return document.getElementById(id); }
+
+var LIMITS = { shifts: 31, items: 100000, planned: 31, peak: 31, refs: 20, train: 4, mentor: 31 };
+var S = { pointer: 0, shifts: 9, items: 600, planned: 18, level: 0, peak: 0, refs: 0, train: 0, mentor: 0, loyalty: false, team: false, q: {} };
+var H = { shifts: 18, items: 1400, profile: 1, train: 3, mentor: 3, quality: true };
+P.quality.forEach(function (q) { S.q[q.id] = true; });
+
+function loadState() {
+  try {
+    var raw = localStorage.getItem("pvz-calc-state");
+    if (!raw) return;
+    var o = JSON.parse(raw);
+    ["pointer", "shifts", "items", "planned", "level", "peak", "refs", "train", "mentor"].forEach(function (k) {
+      if (typeof o[k] === "number") S[k] = o[k];
+    });
+    if (typeof o.loyalty === "boolean") S.loyalty = o.loyalty;
+    if (typeof o.team === "boolean") S.team = o.team;
+    if (o.q && typeof o.q === "object") P.quality.forEach(function (q) { if (typeof o.q[q.id] === "boolean") S.q[q.id] = o.q[q.id]; });
+    if (S.pointer >= P.pointers.length) S.pointer = 0;
+    if (S.level >= P.levels.length) S.level = 0;
+  } catch (e) {}
+}
+function saveState() { try { localStorage.setItem("pvz-calc-state", JSON.stringify(S)); } catch (e) {} }
+
+var COLORS = ["c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9"];
+var CROWN = '<svg class="crown" viewBox="0 0 24 16" aria-hidden="true"><path d="M2 14.5 1.2 4.2 7.2 9 12 1.8 16.8 9l6-4.8L22 14.5Z" fill="#f4c20d" stroke="#9a6f00" stroke-width="1.2" stroke-linejoin="round"/><circle cx="1.4" cy="3.8" r="1.5" fill="#f4c20d" stroke="#9a6f00"/><circle cx="12" cy="1.8" r="1.5" fill="#f4c20d" stroke="#9a6f00"/><circle cx="22.6" cy="3.8" r="1.5" fill="#f4c20d" stroke="#9a6f00"/></svg>';
+function parts(r) {
+  var tpay = trainPayFor(r.ptr);
+  var qnote;
+  if (r.quality > 0) qnote = P.qualityNeedsSchedule ? "График выполнен: отработано " + r.worked + " из " + r.plan + " " + plural(r.plan, "смены", "смен", "смен") : "График, недостачи, рейтинг, порядок";
+  else if (r.qualityPossible > 0 && P.qualityNeedsSchedule) qnote = r.plan > 0 ? "Начислится, если отработать все смены по графику. Осталось " + Math.max(0, r.plan - r.worked) + " " + plural(Math.max(0, r.plan - r.worked), "смена", "смены", "смен") + ", сумма " + rub(r.qualityPossible) : "Укажите смены в графике на месяц";
+  else qnote = "Условия премии не выбраны";
+  var list = [
+    { name: "Оклад", note: r.shifts + " " + plural(r.shifts, "смена", "смены", "смен") + " × " + rub(r.perShift) + (r.lvlAdd > 0 ? ", с надбавкой за стаж " + rub(r.lvlAdd) : ""), amount: r.salary },
+    { name: "Бонус за выдачу сверх нормы", note: r.items > 0 ? nf.format(r.items) + " " + plural(r.items, "заказ", "заказа", "заказов") + " × " + rate(r.ptr.itemPay) + (r.capped ? ", достигнут лимит" : "") : "Заказов сверх нормы пока нет", amount: r.volume },
+    { name: "Премия за качество", note: qnote, amount: r.quality },
+    { name: "Работа в праздничные дни", note: r.peakN + " " + plural(r.peakN, "смена", "смены", "смен") + " × " + rub(P.peak), amount: r.peak },
+    { name: "Бонус за 3 месяца без штрафов", note: "Разово, если вы отработали 3 месяца без штрафов", amount: r.loyalty },
+    { name: "Приведи друга", note: "За каждого, кто отработал 2 месяца", amount: r.referral },
+    { name: "Командный бонус", note: "Если пункт выполнил цель по рейтингу", amount: r.team },
+    { name: "Стажировка", note: r.trainShifts + " " + plural(r.trainShifts, "стажировочная смена", "стажировочные смены", "стажировочных смен") + " × " + rub(tpay), amount: r.training },
+    { name: "Наставничество", note: r.mentorShifts + " " + plural(r.mentorShifts, "смена", "смены", "смен") + " со стажёром × " + rub(P.mentor) + ", выплата в текущей зарплате", amount: r.mentor }
+  ];
+  list.forEach(function (p, i) { p.ci = i; });
+  return list;
+}
+function trainHTML(r) {
+  var tpay = trainPayFor(r.ptr);
+  return '<div class="defer"><div class="defer-top"><div><div class="name">Стажировка</div><div class="note">' + r.trainShifts + " " + plural(r.trainShifts, "стажировочная смена", "стажировочные смены", "стажировочных смен") + " × " + rub(tpay) + '</div></div><div class="amt">' + rub(r.training) + '</div></div><div class="badge">Выплата в 3-ю зарплату</div><p class="warn">Стажировка оплачивается в третью зарплату, когда вы отработаете с нами 3 месяца. Эта сумма не входит в итог за этот месяц: она добавится к вашей зарплате через 3 месяца работы. Стажировка длится от 1 до 4 смен.</p></div>';
+}
+function renderRows(ul, stack, list, total) {
+  var h = "", s = "";
+  list.forEach(function (p) {
+    h += '<li class="' + (p.amount ? "" : "zero") + '"><span class="dot" style="background:var(--' + COLORS[p.ci] + ')"></span><div><div class="name">' + p.name + '</div><div class="note">' + p.note + '</div></div><div class="amt">' + rub(p.amount) + "</div></li>";
+    if (p.amount > 0 && total > 0) s += '<span style="width:' + (p.amount / total * 100).toFixed(2) + '%;background:var(--' + COLORS[p.ci] + ')"></span>';
+  });
+  ul.innerHTML = h;
+  stack.innerHTML = s;
+}
+
+function renderCalc() {
+  var r = calc(Object.assign({}, S, { trainShifts: S.train, mentorShifts: S.mentor }));
+  $("total").textContent = rub(r.total);
+  $("data-card").setAttribute("data-tier", String(S.level));
+
+  var planned = Math.max(num(S.planned), r.shifts);
+  var f = "";
+  if (r.shifts > 0 && planned > 0) {
+    var paceI = r.items / r.shifts;
+    var fr = calc({ pointer: S.pointer, shifts: planned, items: paceI * planned, level: S.level, peak: S.peak, refs: S.refs, loyalty: S.loyalty, team: S.team, q: S.q, mentorShifts: S.mentor, planned: planned });
+    f = "Прогноз на конец месяца при " + planned + " " + plural(planned, "смене", "сменах", "сменах") + " по графику и текущем темпе: <b>" + rub(fr.total) + "</b>";
+  } else {
+    f = "Введите отработанные смены, чтобы увидеть прогноз.";
+  }
+  $("forecast").innerHTML = f;
+
+  var t;
+  if (r.items <= 0) t = "Каждый заказ сверх нормы оплачивается: <b>" + rate(r.ptr.itemPay) + "</b>. Сколько заказов вы выдали сверх нормы, узнайте у администратора пункта.";
+  else t = "Вы выдали сверх нормы <b>" + nf.format(r.items) + "</b> " + plural(r.items, "заказ", "заказа", "заказов") + ". Бонус: <b>" + rub(r.volume) + "</b> (" + rate(r.ptr.itemPay) + " за каждый заказ)." + (r.capped ? " Достигнут месячный лимит." : "");
+  $("m-text").innerHTML = t;
+
+  renderRows($("rows"), $("stack"), parts(r).filter(function (p) { return p.ci !== 7; }), r.total);
+  var tc = $("train-card");
+  tc.innerHTML = r.trainShifts > 0 ? trainHTML(r) : "";
+  tc.hidden = !(r.trainShifts > 0);
+}
+
+function renderHow() {
+  var ptr = P.pointers[S.pointer];
+  var prof = P.profiles[H.profile] || P.profiles[0];
+  var isNew = H.profile === 0;
+  var regular = isNew ? Math.max(0, H.shifts - H.train) : H.shifts;
+  $("h-card").setAttribute("data-tier", String(H.profile));
+  var r = calc({ pointer: S.pointer, shifts: regular, items: H.items, level: prof.level, peak: 0, refs: 0, loyalty: false, team: false, q: H.quality ? allQ() : {}, planned: H.shifts, trainShifts: isNew ? H.train : 0, mentorShifts: isNew ? 0 : H.mentor });
+  $("h-total").textContent = rub(r.total);
+  var stazh = r.lvlAdd > 0 ? "надбавка за стаж " + rub(r.lvlAdd) + " за смену" : "надбавка за стаж пока 0, она начинается после 3 месяцев";
+  var over = H.items > 0 ? nf.format(H.items) + " " + plural(H.items, "заказ", "заказа", "заказов") + " сверх нормы за месяц" : "без заказов сверх нормы";
+  $("h-sub").innerHTML = "<b>" + prof.name + "</b>: " + H.shifts + " " + plural(H.shifts, "смена", "смены", "смен") + " в месяц" + (isNew ? " (из них " + H.train + " стажировочных)" : "") + ", " + over + ". Оклад пункта " + rub(ptr.base) + ", " + stazh + ".";
+  $("h-shifts-v").textContent = H.shifts + " " + plural(H.shifts, "смена", "смены", "смен");
+  $("h-items-v").textContent = nf.format(H.items) + " " + plural(H.items, "заказ", "заказа", "заказов");
+  $("h-train-v").textContent = H.train + " " + plural(H.train, "смена", "смены", "смен");
+  $("h-mentor-v").textContent = H.mentor + " " + plural(H.mentor, "смена", "смены", "смен");
+  $("h-train-wrap").hidden = !isNew;
+  $("h-mentor-wrap").hidden = isNew;
+  renderRows($("h-rows"), $("h-stack"), parts(r).filter(function (p) { return p.ci < 3 || (p.ci === 8 && p.amount > 0); }), r.total);
+  var tc = $("h-train-card");
+  tc.innerHTML = isNew && r.trainShifts > 0 ? trainHTML(r) : "";
+  tc.hidden = !(isNew && r.trainShifts > 0);
+  var c = "";
+  P.profiles.forEach(function (p, i) { c += '<button type="button" class="chip" data-prof="' + i + '" data-tier="' + i + '" aria-pressed="' + (H.profile === i) + '">' + (i === 2 ? CROWN : "") + esc(p.name) + "</button>"; });
+  $("profiles").innerHTML = c;
+}
+function allQ() { var o = {}; P.quality.forEach(function (q) { o[q.id] = true; }); return o; }
+
+function renderSteps() {
+  var ptr = P.pointers[S.pointer];
+  var qsum = rub(P.quality.reduce(function (a, q) { return a + q.amount; }, 0));
+  var items = [
+    ["Оклад", "За каждую отработанную смену на этом пункте вы получаете " + rub(ptr.base) + ". Надбавка за стаж: " + P.profiles[0].name + " без надбавки, " + P.profiles[1].name + " +" + rub(P.levels[1].add) + " за смену, " + P.profiles[2].name + " +" + rub(P.levels[2].add) + " за смену."],
+    ["Бонус за выдачу сверх нормы", "У каждого пункта есть норма заказов. За каждый заказ сверх нормы вы получаете " + rate(ptr.itemPay) + ". Сколько заказов вы выдали сверх нормы, вам сообщает администратор пункта."],
+    ["Премия за качество", "Это " + qsum + " в месяц. " + (P.qualityNeedsSchedule ? "Она начисляется только тем, кто отработал все смены по графику: при пропусках или увольнении до конца графика премия не выплачивается полностью. " : "") + "Она делится на части: график, отсутствие недостач, рейтинг, порядок. Одно упущение лишает только своей части."],
+    ["Работа в праздничные дни", "За работу в праздничные дни предусмотрена доплата " + rub(P.peak) + " за смену."],
+    ["Бонус за 3 месяца без штрафов", "Если вы отработали три месяца без штрафов, вы получаете разовую выплату " + rub(P.loyalty) + "."],
+    ["Приведи друга", "Если приведённый вами человек отработал два месяца, вы получаете " + rub(P.referral) + "."],
+    ["Командный бонус", "Если пункт выполнил цель по рейтингу, каждый сотрудник смены получает " + rub(P.team) + "."],
+    ["Стажировка", "Стажировка длится от 1 до 4 смен. Она оплачивается в третью зарплату, когда вы отработаете с нами 3 месяца: " + rub(trainPayFor(ptr)) + " за каждую стажировочную смену на этом пункте. До этого момента деньги за стажировку не выплачиваются. Бонус за выдачу сверх нормы и надбавка за стаж на стажировке не начисляются."],
+    ["Наставничество", "Если вы работаете на смене вместе со стажёром и обучаете его, вам доплачивается " + rub(P.mentor) + " за каждую такую смену. Эта доплата выплачивается сразу, в текущей зарплате."]
+  ], h = "";
+  items.forEach(function (it, i) { h += '<li><span class="dot" style="background:var(--' + COLORS[i] + ');margin-top:6px"></span><div><div class="t">' + it[0] + '</div><div class="d">' + it[1] + "</div></div></li>"; });
+  $("steps").innerHTML = h;
+}
+
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+function levelLabel(i) { var n = P.profiles[i] ? P.profiles[i].name : ""; if (i === 0) return n + " (до 3 месяцев)"; return n + " (" + (i === 1 ? "3–6 месяцев" : "больше 6 месяцев") + ", +" + P.levels[i].add + " ₽ к окладу за смену)"; }
+function refreshLabels() {
+  var ls = $("level"), i;
+  for (i = 0; i < P.levels.length && i < ls.options.length; i++) ls.options[i].textContent = levelLabel(i);
+  P.quality.forEach(function (q) { var el = $("qv-" + q.id); if (el) el.textContent = rub(q.amount); });
+  renderPointerSelect();
+}
+function renderPointerSelect() {
+  var p = P.pointers[S.pointer] || P.pointers[0];
+  $("pointer-btn").setAttribute("data-brand", p.brand);
+  $("pointer-name").textContent = p.name;
+  var h = "";
+  P.pointers.forEach(function (q, i) { h += '<li role="presentation"><button type="button" class="opt" role="option" data-i="' + i + '" data-brand="' + q.brand + '" aria-selected="' + (i === S.pointer) + '">' + esc(q.name) + "</button></li>"; });
+  $("pointer-list").innerHTML = h;
+}
+function applyBrand() { document.documentElement.setAttribute("data-brand", (P.pointers[S.pointer] || P.pointers[0]).brand); }
+function setListOpen(open) { $("pointer-list").hidden = !open; $("pointer-btn").setAttribute("aria-expanded", String(open)); }
+
+var dbRef = null, dirty = false, saving = false;
+function getConfig() {
+  return {
+    cap: P.cap, capOn: P.capOn, qualityNeedsSchedule: P.qualityNeedsSchedule, trainManual: P.trainManual, trainPay: P.trainPay, mentor: P.mentor, profileItems: P.profiles.map(function (p) { return p.items; }), peak: P.peak, referral: P.referral, loyalty: P.loyalty, team: P.team,
+    levelAdds: P.levels.map(function (l) { return l.add; }),
+    quality: P.quality.map(function (q) { return q.amount; }),
+    pointers: P.pointers.map(function (p) { return { name: p.name, base: p.base, itemPay: p.itemPay }; })
+  };
+}
+function applyConfig(c) {
+  if (!c || typeof c !== "object") return;
+  ["cap", "trainPay", "mentor", "peak", "referral", "loyalty", "team"].forEach(function (k) { if (typeof c[k] === "number") P[k] = num(c[k]); });
+  if (typeof c.capOn === "boolean") P.capOn = c.capOn;
+  if (typeof c.qualityNeedsSchedule === "boolean") P.qualityNeedsSchedule = c.qualityNeedsSchedule;
+  if (typeof c.trainManual === "boolean") P.trainManual = c.trainManual;
+  if (Array.isArray(c.profileItems)) c.profileItems.forEach(function (v, i) { if (P.profiles[i] && typeof v === "number") P.profiles[i].items = num(v); });
+  else if (Array.isArray(c.profileHundreds)) c.profileHundreds.forEach(function (v, i) { if (P.profiles[i] && typeof v === "number") P.profiles[i].items = num(v) * 100; });
+  if (Array.isArray(c.levelAdds)) c.levelAdds.forEach(function (v, i) { if (P.levels[i] && typeof v === "number") P.levels[i].add = num(v); });
+  if (Array.isArray(c.quality)) c.quality.forEach(function (v, i) { if (P.quality[i] && typeof v === "number") P.quality[i].amount = num(v); });
+  if (Array.isArray(c.pointers)) c.pointers.forEach(function (p, i) {
+    var t = P.pointers[i]; if (!t || !p) return;
+    if (typeof p.name === "string" && p.name.trim()) t.name = p.name.trim().slice(0, 60);
+    if (typeof p.base === "number") t.base = num(p.base);
+    if (typeof p.itemPay === "number") t.itemPay = num(p.itemPay);
+    else if (typeof p.hundredPay === "number") t.itemPay = num(p.hundredPay) / 100;
+  });
+  refreshLabels();
+}
+
+function buildOwner() {
+  $("p-quality").innerHTML = P.quality.map(function (q, i) {
+    return '<div><label for="pq' + i + '">' + esc(q.label) + ', ₽</label><input type="number" id="pq' + i + '" inputmode="numeric" min="0" data-q="' + i + '"></div>';
+  }).join("");
+  var h = "";
+  P.pointers.forEach(function (p, i) {
+    h += '<div class="pcard"><div class="full"><label for="pn' + i + '">Название пункта ' + (i + 1) + '</label><input type="text" id="pn' + i + '" maxlength="60" data-pt="' + i + '" data-f="name"></div>' +
+      '<div><label for="pb' + i + '">Оклад за смену, ₽</label><input type="number" id="pb' + i + '" inputmode="numeric" min="0" data-pt="' + i + '" data-f="base"></div>' +
+      '<div><label for="ph' + i + '">За каждый заказ сверх нормы, ₽</label><input type="number" id="ph' + i + '" inputmode="decimal" min="0" step="0.1" data-pt="' + i + '" data-f="itemPay"></div></div>';
+  });
+  $("ptable").innerHTML = h;
+  fillOwner();
+}
+function fillOwner() {
+  $("p-cap").value = P.cap; $("p-peak").value = P.peak;
+  syncOwnerState();
+  $("p-ref").value = P.referral; $("p-loy").value = P.loyalty; $("p-team").value = P.team;
+  $("p-mentor").value = P.mentor;
+  P.profiles.forEach(function (p, i) { $("p-pct" + i).value = p.items; });
+  $("p-lv1").value = P.levels[1].add; $("p-lv2").value = P.levels[2].add;
+  P.quality.forEach(function (q, i) { $("pq" + i).value = q.amount; });
+  document.querySelectorAll("#ptable input").forEach(function (el) {
+    el.value = P.pointers[Number(el.getAttribute("data-pt"))][el.getAttribute("data-f")];
+  });
+}
+function syncOwnerState() {
+  $("p-capon").checked = P.capOn; $("p-cap").disabled = !P.capOn;
+  $("p-qsched").checked = P.qualityNeedsSchedule;
+  $("p-trainman").checked = P.trainManual;
+  var inp = $("p-trainpay"); inp.disabled = !P.trainManual;
+  if (document.activeElement !== inp) inp.value = P.trainManual ? P.trainPay : (P.pointers[S.pointer] || P.pointers[0]).base;
+}
+var OMAP = { "p-trainpay": "trainPay", "p-mentor": "mentor", "p-cap": "cap", "p-peak": "peak", "p-ref": "referral", "p-loy": "loyalty", "p-team": "team" };
+function ownerStatus(m) { $("owner-status").textContent = m; }
+function onOwnerInput(e) {
+  var t = e.target, id = t.id;
+  if (id === "p-capon") P.capOn = t.checked;
+  else if (id === "p-qsched") P.qualityNeedsSchedule = t.checked;
+  else if (id === "p-trainman") { P.trainManual = t.checked; if (t.checked) P.trainPay = (P.pointers[S.pointer] || P.pointers[0]).base; }
+  else if (OMAP[id]) P[OMAP[id]] = num(t.value);
+  else if (/^p-pct[0-2]$/.test(id)) P.profiles[Number(id.slice(5))].items = num(t.value);
+  else if (id === "p-lv1") P.levels[1].add = num(t.value);
+  else if (id === "p-lv2") P.levels[2].add = num(t.value);
+  else if (t.getAttribute("data-q") !== null) P.quality[Number(t.getAttribute("data-q"))].amount = num(t.value);
+  else if (t.getAttribute("data-pt") !== null) {
+    var p = P.pointers[Number(t.getAttribute("data-pt"))], f = t.getAttribute("data-f");
+    if (f === "name") { if (t.value.trim()) p.name = t.value.trim().slice(0, 60); } else p[f] = num(t.value);
+  } else return;
+  dirty = true; refreshLabels(); renderAll();
+  ownerStatus("Есть несохранённые изменения. Нажмите «Сохранить для всех».");
+}
+var API = "https://calcul777.vasilijsabadas3495.workers.dev/settings";
+function gate(msg) { document.body.classList.add("locked"); $("gate-msg").textContent = msg; }
+function saveShared() {
+  if (saving) return;
+  var initData = ""; try { initData = Telegram.WebApp.initData || ""; } catch (e) {}
+  saving = true; ownerStatus("Сохраняю…");
+  fetch(API, { method: "POST", headers: { "Content-Type": "application/json", "X-Init-Data": initData }, body: JSON.stringify({ config: getConfig() }) })
+    .then(function (r) { if (!r.ok) throw r.status; return r.json(); })
+    .then(function () { dirty = false; saving = false; ownerStatus("Сохранено. Сотрудники увидят новые значения при следующем открытии."); })
+    .catch(function (e) { saving = false; ownerStatus("Не удалось сохранить (" + e + "). Попробуйте ещё раз."); });
+}
+function copyConfig() {}
+function rulesStatus(m) { $("rules-status").textContent = m; }
+async function initShared() {
+  var initData = "";
+  try { if (window.Telegram && Telegram.WebApp) { Telegram.WebApp.ready(); Telegram.WebApp.expand(); initData = Telegram.WebApp.initData || ""; } } catch (e) {}
+  if (!initData) { gate("Откройте калькулятор через Telegram-бота: кнопка «Моя зарплата» рядом с полем ввода."); return; }
+  try {
+    var r = await fetch(API, { headers: { "X-Init-Data": initData }, cache: "no-store" });
+    var d = null; try { d = await r.json(); } catch (e) {}
+    if (r.status === 403) { gate("Нет доступа. Отправьте владельцу свой ID" + (d && d.id ? ": " + d.id : "") + ", и он вас добавит."); return; }
+    if (!r.ok || !d) { gate("Не удалось проверить доступ. Закройте и откройте калькулятор ещё раз."); return; }
+    if (d.config) applyConfig(d.config);
+    if (d.isOwner) { $("owner").hidden = false; fillOwner(); }
+    renderAll();
+    if (d.updatedAt) rulesStatus("Правила обновлены " + new Date(d.updatedAt).toLocaleDateString("ru-RU") + ".");
+    document.body.classList.remove("locked");
+  } catch (e) { gate("Нет связи. Проверьте интернет и откройте калькулятор ещё раз."); }
+}
+
+function buildStatic() {
+  $("level").innerHTML = P.levels.map(function (l, i) { return '<option value="' + i + '">' + levelLabel(i) + "</option>"; }).join("");
+  $("quality").innerHTML = P.quality.map(function (q) {
+    return '<label class="check"><input type="checkbox" id="' + q.id + '"><span>' + q.label + '</span><span class="v" id="qv-' + q.id + '">' + rub(q.amount) + "</span></label>";
+  }).join("");
+  $("loyalty-v").textContent = rub(P.loyalty);
+  $("team-v").textContent = rub(P.team);
+}
+function syncInputs() {
+  $("level").value = S.level;
+  $("shifts").value = S.shifts; $("items").value = S.items; $("planned").value = S.planned;
+  $("peak").value = S.peak; $("refs").value = S.refs; $("train").value = S.train; $("mentor").value = S.mentor;
+  $("loyalty").checked = S.loyalty; $("team").checked = S.team;
+  P.quality.forEach(function (q) { $(q.id).checked = !!S.q[q.id]; });
+  $("h-shifts").value = H.shifts; $("h-items").value = H.items; $("h-train").value = H.train; $("h-mentor").value = H.mentor; $("h-quality").checked = H.quality;
+}
+function renderInfo() {
+  var p = P.pointers[S.pointer] || P.pointers[0];
+  $("ptinfo").innerHTML = "Оклад на этом пункте: <b>" + rub(p.base) + "</b> за смену. За каждый заказ сверх нормы: <b>" + rate(p.itemPay) + "</b>.";
+}
+function renderAll() { applyBrand(); renderPointerSelect(); syncOwnerState(); renderInfo(); renderCalc(); renderHow(); renderSteps(); $("loyalty-v").textContent = rub(P.loyalty); $("team-v").textContent = rub(P.team); }
+
+function setTab(name) {
+  var calcOn = name !== "how";
+  $("view-calc").hidden = !calcOn; $("view-how").hidden = calcOn;
+  $("tab-calc").setAttribute("aria-selected", calcOn); $("tab-how").setAttribute("aria-selected", !calcOn);
+}
+
+function bind() {
+  $("pointer-btn").addEventListener("click", function (e) { e.stopPropagation(); setListOpen($("pointer-list").hidden); });
+  $("pointer-list").addEventListener("click", function (e) {
+    var b = e.target.closest(".opt"); if (!b) return;
+    S.pointer = Number(b.getAttribute("data-i")); saveState(); setListOpen(false); renderAll(); $("pointer-btn").focus();
+  });
+  document.addEventListener("click", function () { setListOpen(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") { setListOpen(false); $("pointer-btn").focus(); } });
+  $("level").addEventListener("change", function (e) { S.level = Number(e.target.value); saveState(); renderAll(); });
+  ["shifts", "items", "planned", "peak", "refs", "train", "mentor"].forEach(function (k) {
+    $(k).addEventListener("input", function (e) { S[k] = Math.min(LIMITS[k], num(e.target.value)); saveState(); renderAll(); });
+  });
+  $("loyalty").addEventListener("change", function (e) { S.loyalty = e.target.checked; saveState(); renderAll(); });
+  $("team").addEventListener("change", function (e) { S.team = e.target.checked; saveState(); renderAll(); });
+  P.quality.forEach(function (q) { $(q.id).addEventListener("change", function (e) { S.q[q.id] = e.target.checked; saveState(); renderAll(); }); });
+
+  $("h-shifts").addEventListener("input", function (e) { H.shifts = Number(e.target.value); renderHow(); });
+  $("h-items").addEventListener("input", function (e) { H.items = Number(e.target.value); renderHow(); });
+  $("h-train").addEventListener("input", function (e) { H.train = Number(e.target.value); renderHow(); });
+  $("h-mentor").addEventListener("input", function (e) { H.mentor = Number(e.target.value); renderHow(); });
+  $("h-quality").addEventListener("change", function (e) { H.quality = e.target.checked; renderHow(); });
+  $("profiles").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-prof]"); if (!b) return;
+    H.profile = Number(b.getAttribute("data-prof")); H.items = P.profiles[H.profile].items; $("h-items").value = H.items; renderHow();
+  });
+
+  $("owner").addEventListener("input", onOwnerInput);
+  $("save").addEventListener("click", saveShared);
+
+  document.querySelectorAll(".tabs button").forEach(function (b) {
+    b.addEventListener("click", function () { var n = b.getAttribute("data-tab"); location.hash = n; setTab(n); });
+  });
+  window.addEventListener("hashchange", function () { setTab(location.hash.replace("#", "")); });
+}
+
+loadState();
+buildStatic();
+buildOwner();
+syncInputs();
+bind();
+setTab(location.hash.replace("#", ""));
+renderAll();
+initShared();
+</script>
+</body>
+</html>
